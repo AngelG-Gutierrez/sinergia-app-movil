@@ -1,26 +1,48 @@
-import { Stack, useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from "@/features/auth/application/providers/authProvider";
+import { Stack, useRouter } from "expo-router";
+import { ArrowLeft } from "lucide-react-native";
+import {
+  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export function ProfileView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const handleEditData = () => {
-    console.log('Editar datos');
+    console.log("Editar datos");
   };
 
-  const handleLogout = () => {
-    console.log('Cerrar sesión');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      Alert.alert("Error", "No se pudo cerrar sesión");
+    }
   };
 
   const handleDeleteAccount = () => {
-    console.log('Eliminar cuenta');
+    console.log("Eliminar cuenta");
   };
 
+  const { user, signOut } = useAuth();
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+  const formattedLocalDate = user?.birthDate
+    ? new Date(user.birthDate).toLocaleDateString("es-MX", { timeZone: "UTC" })
+    : "";
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="light-content" backgroundColor="#226D8E" />
 
@@ -47,10 +69,10 @@ export function ProfileView() {
 
         <View style={styles.avatarCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>E</Text>
+            <Text style={styles.avatarText}>{userInitial}</Text>
           </View>
-          <Text style={styles.userEmail}>ejemploemail@gmail.com</Text>
-          <Text style={styles.userId}>id: 23dv223fd</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          {/* <Text style={styles.userId}>{id: 23dv223fd}</Text> */}
         </View>
 
         <View style={styles.dataCard}>
@@ -58,27 +80,27 @@ export function ProfileView() {
 
           <View style={styles.infoField}>
             <Text style={styles.fieldLabel}>Nombre</Text>
-            <Text style={styles.fieldValue}>Nombre de usuario completo</Text>
+            <Text style={styles.fieldValue}>{user?.name}</Text>
             <View style={styles.underline} />
           </View>
 
           <View style={styles.infoField}>
             <Text style={styles.fieldLabel}>Fecha de nacimiento</Text>
-            <Text style={styles.fieldValue}>dd / mm / aaaa</Text>
+            <Text style={styles.fieldValue}>{formattedLocalDate}</Text>
             <View style={styles.underline} />
           </View>
 
           <View style={styles.infoField}>
             <Text style={styles.fieldLabel}>Correo electrónico</Text>
-            <Text style={styles.fieldValue}>ejemploemail@gmail.com</Text>
+            <Text style={styles.fieldValue}>{user?.email}</Text>
             <View style={styles.underline} />
           </View>
 
-          <View style={styles.infoField}>
+          {/* <View style={styles.infoField}>
             <Text style={styles.fieldLabel}>Contraseña</Text>
             <Text style={styles.fieldValue}>************</Text>
             <View style={styles.underline} />
-          </View>
+          </View> */}
 
           <TouchableOpacity
             style={styles.editButton}
@@ -112,86 +134,86 @@ export function ProfileView() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#226D8E',
+    backgroundColor: "#226D8E",
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#95C5D8',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#95C5D8",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 44,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#E0F2FE',
+    color: "#E0F2FE",
     marginTop: 2,
   },
   avatarCard: {
-    backgroundColor: '#6BA1B8',
+    backgroundColor: "#6BA1B8",
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   avatarCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#9EC2D4',
+    backgroundColor: "#9EC2D4",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   userEmail: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   userId: {
     fontSize: 13,
-    color: '#E0F2FE',
+    color: "#E0F2FE",
   },
   dataCard: {
-    backgroundColor: '#033752',
+    backgroundColor: "#033752",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#C53030',
+    borderColor: "#C53030",
   },
   dataCardTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 20,
   },
   infoField: {
@@ -199,58 +221,58 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
-    color: '#93C5FD',
+    color: "#93C5FD",
     marginBottom: 4,
   },
   fieldValue: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginBottom: 6,
   },
   underline: {
     height: 1,
-    backgroundColor: '#93C5FD',
+    backgroundColor: "#93C5FD",
   },
   editButton: {
-    backgroundColor: '#2B7A9E',
+    backgroundColor: "#2B7A9E",
     borderWidth: 1,
-    borderColor: '#60A5FA',
+    borderColor: "#60A5FA",
     borderRadius: 24,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   editButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   logoutButton: {
-    backgroundColor: '#72A4B9',
+    backgroundColor: "#72A4B9",
     borderWidth: 1,
-    borderColor: '#E0F2FE',
+    borderColor: "#E0F2FE",
     borderRadius: 24,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 14,
   },
   logoutButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   deleteButton: {
-    backgroundColor: '#FF0000',
+    backgroundColor: "#FF0000",
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
     borderRadius: 24,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   deleteButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
