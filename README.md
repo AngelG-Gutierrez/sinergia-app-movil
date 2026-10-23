@@ -30,12 +30,12 @@ Para conocer a detalle las especificaciones y la planeación ágil detrás de SI
 
 * **Framework:** [React Native](https://reactnative.dev/)
 * **SDK:** [Expo](https://expo.dev/)
-* **Autenticación:** [Supabase] (https://supabase.com/)
+* **Autenticación:** [Supabase](https://supabase.com/)
 * **Lenguaje:** TypeScript
 
 ---
 
-## Equipo de Trabajo - Grupo 9AX
+## Equipo de Trabajo - Grupo 10AX
 
 * Ángel Antelmo Gutiérrez Gadea
 * Genaro Alfredo Silva Espinoza
