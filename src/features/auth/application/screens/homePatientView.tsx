@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
-    marginBottom: 18,
+    marginBottom: 17,
   },
   cardCountText: {
     fontSize: 22,
