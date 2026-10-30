@@ -1,15 +1,61 @@
-import { Stack, useRouter } from 'expo-router';
+import { httpClient } from '@/core/api/axios.adapter';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Clock, Dumbbell, Layers, Repeat, Stethoscope } from 'lucide-react-native';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+interface PrescriptionDetail {
+  id: string;
+  exerciseName: string;
+  description: string;
+  frequency: string;
+  mediaUrl?: string;
+  createdAt: string;
+}
 
 export function PrescriptionsDetailsView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  
+  // Recibimos el parámetro 'prescriptionId' enviado desde la pantalla anterior
+  const { prescriptionId } = useLocalSearchParams<{ prescriptionId: string }>();
+
+  const [exercise, setExercise] = useState<PrescriptionDetail | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchExerciseDetails() {
+      if (!prescriptionId) return;
+      try {
+        setLoading(true);
+        // Si tu backend soporta una ruta por ID (ej. /prescriptions/:id)
+        // O si traes la lista y filtras, ajusta la ruta según tu controlador de NestJS.
+        const data = await httpClient.get<PrescriptionDetail>(`/prescriptions/${prescriptionId}`);
+        setExercise(data);
+      } catch (error) {
+        console.error('Error al obtener los detalles del ejercicio:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchExerciseDetails();
+  }, [prescriptionId]);
 
   const handleComplete = () => {
-    console.log('Marcar ejercicio como completado');
+    console.log('Marcar ejercicio como completado para el id:', prescriptionId);
+    // Aquí puedes implementar la llamada PUT o PATCH a tu backend cuando añadan el estatus
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#237397" />
+        <Text style={{ marginTop: 10, color: '#4B5563' }}>Cargando detalles...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -33,12 +79,19 @@ export function PrescriptionsDetailsView() {
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerSubtitle}>Detalles del ejercicio</Text>
-            <Text style={styles.headerTitle}>Nombre del ejercicio</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {exercise?.exerciseName || 'Nombre del ejercicio'}
+            </Text>
           </View>
         </View>
 
+        {/* Sección Multimedia / GIF dinámico si viene del backend */}
         <View style={styles.gifCard}>
-          <Text style={styles.gifText}>Gif del ejercicio</Text>
+          {exercise?.mediaUrl ? (
+            <Image source={{ uri: exercise.mediaUrl }} style={styles.mediaImage} resizeMode="cover" />
+          ) : (
+            <Text style={styles.gifText}>Gif del ejercicio</Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -47,7 +100,7 @@ export function PrescriptionsDetailsView() {
             <Text style={styles.sectionTitle}>DESCRIPCIÓN TÉCNICA</Text>
           </View>
           <Text style={styles.descriptionText}>
-            Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio
+            {exercise?.description || 'Sin descripción técnica disponible.'}
           </Text>
         </View>
 
@@ -57,7 +110,7 @@ export function PrescriptionsDetailsView() {
               <Layers color="#2B7A9E" size={22} />
             </View>
             <Text style={styles.halfLabel}>SERIES</Text>
-            <Text style={styles.halfValue}>00 Series</Text>
+            <Text style={styles.halfValue}>03 Series</Text> 
           </View>
 
           <View style={styles.halfCard}>
@@ -74,7 +127,7 @@ export function PrescriptionsDetailsView() {
             <Repeat color="#000000" size={20} />
             <Text style={styles.sectionTitle}>REPETICIONES</Text>
           </View>
-          <Text style={styles.singleValueText}>12 por cada pie y mano</Text>
+          <Text style={styles.singleValueText}>{exercise?.frequency || 'No especificado'}</Text>
         </View>
 
         <View style={styles.card}>
@@ -93,7 +146,7 @@ export function PrescriptionsDetailsView() {
             <Text style={styles.sectionTitle}>INSTRUCCIONES DEL FISIOTERAPEUTA</Text>
           </View>
           <Text style={styles.descriptionText}>
-            Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio Descripción del ejercicio
+            {exercise?.description || 'Sigue las indicaciones de tu especialista.'}
           </Text>
         </View>
 
@@ -159,6 +212,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#93C5FD',
+    overflow: 'hidden',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
   },
   gifText: {
     fontSize: 20,
