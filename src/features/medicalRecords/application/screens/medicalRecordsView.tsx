@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { ChevronRight, ClipboardList, Search } from 'lucide-react-native';
+import { ChevronRight, ClipboardList, Plus, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +15,12 @@ export function MedicalRecordsView() {
     { id: '3', number: '#001', date: 'dd / mm / aaaa', status: 'Completada' },
     { id: '4', number: '#001', date: 'dd / mm / aaaa', status: 'Completada' },
     { id: '5', number: '#001', date: 'dd / mm / aaaa', status: 'Completada' },
+    { id: '6', number: '#001', date: 'dd / mm / aaaa', status: 'Completada' },
   ];
+
+  const handleAddRecord = () => {
+    console.log('Crear nuevo expediente médico');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -25,7 +30,7 @@ export function MedicalRecordsView() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 24) },
+          { paddingBottom: Math.max(insets.bottom, 80) },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -34,9 +39,9 @@ export function MedicalRecordsView() {
             <ClipboardList color="#000000" size={24} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.screenTitle}>Mis expedientes médicos</Text>
+            <Text style={styles.screenTitle}>Expedientes médicos</Text>
             <Text style={styles.screenSubtitle}>
-              Consulta la inforormación de todos tus expedientes médicos que tienes con nosotros.
+              Consulta la información de todos los expedientes médicos de tus pacientes.
             </Text>
           </View>
         </View>
@@ -53,9 +58,9 @@ export function MedicalRecordsView() {
         </View>
 
         <View style={styles.recordsList}>
-          {records.map((item) => (
+          {records.map((item, index) => (
             <TouchableOpacity
-              key={item.id}
+              key={index}
               style={styles.recordCard}
               activeOpacity={0.8}
             >
@@ -78,6 +83,14 @@ export function MedicalRecordsView() {
           ))}
         </View>
       </ScrollView>
+
+      <TouchableOpacity
+        style={[styles.floatingButton, { bottom: Math.max(insets.bottom, 16) }]}
+        activeOpacity={0.85}
+        onPress={handleAddRecord}
+      >
+        <Plus color="#FFFFFF" size={28} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -186,5 +199,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
+  },
+  floatingButton: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2B7A9E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 99,
   },
 });

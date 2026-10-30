@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Activity, Calendar, FileText, Home } from 'lucide-react-native';
+import { Activity, Calendar, Home } from 'lucide-react-native';
 
 export default function PatientTabLayout() {
   return (
@@ -29,22 +29,6 @@ export default function PatientTabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Activity size={size} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="medicalRecords"
-        options={{
-          title: 'Expedientes',
-          tabBarIcon: ({ color, size }) => (
-            <FileText size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="newAppointment" 
-        options={{
-          href: null, 
-          title: 'Nueva Cita',
         }}
       />
       <Tabs.Screen

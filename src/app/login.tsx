@@ -1,42 +1,97 @@
-import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
-import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { useLoginMutation } from "../features/auth/application/hooks/useAuthMutation";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const insets = useSafeAreaInsets();
 
-const router = useRouter();
+  const router = useRouter();
+  const { mutate: login, isPending } = useLoginMutation();
+
+  const handleLogin = () => {
+    if (!email.trim() || !password) {
+      Alert.alert(
+        "Campos incompletos",
+        "Por favor ingresa tu correo y contraseña.",
+      );
+      return;
+    }
+
+    login(
+      {
+        email: email.trim().toLowerCase(),
+        password,
+      },
+      {
+        onSuccess: (data) => {
+          // Redirige según el rol
+          if (data.user.role === "Administrador") {
+            router.replace("/(admin)/home");
+          } else {
+            router.replace("/(patient)/home");
+          }
+        },
+        onError: (error: any) => {
+          const message =
+            error?.response?.data?.message || "Correo o contraseña incorrectos";
+          Alert.alert("Error", Array.isArray(message) ? message[0] : message);
+        },
+      },
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#CBE5FF" />
-      
+
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
           <View style={styles.headerContainer}>
             <View style={styles.headerTextContainer}>
               <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
-              <Text style={styles.welcomeSubtitle}>
+              {/* <Text style={styles.welcomeSubtitle}>
                 Ingresa tus credenciales otorgadas por tu fisioterapeuta.
-              </Text>
+              </Text> */}
             </View>
-            
+
             <Image
-              source={require('../../assets/images/LogoSinergia.png')}
+              source={require("../../assets/images/LogoSinergia.png")}
               style={styles.logo}
               resizeMode="contain"
             />
           </View>
 
-          <View style={[styles.formContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View
+            style={[
+              styles.formContainer,
+              { paddingBottom: Math.max(insets.bottom, 20) },
+            ]}
+          >
             <Text style={styles.formTitle}>Inicio de sesión</Text>
 
             <View style={styles.inputContainer}>
@@ -76,7 +131,10 @@ const router = useRouter();
             </View>
 
             <View style={styles.optionsRow}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => router.replace('/forgotPassword')}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.replace("/forgotPassword")}
+              >
                 <Text style={styles.forgotPasswordText}>
                   ¿Olvidaste tu contraseña?
                 </Text>
@@ -84,17 +142,27 @@ const router = useRouter();
             </View>
 
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, isPending && { opacity: 0.7 }]}
               activeOpacity={0.85}
-              onPress={() => router.replace('/(patient)/home')}
+              onPress={handleLogin}
+              disabled={isPending}
             >
-              <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+              {isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>
-                ¿No tienes cuenta?{' '}
-                <Text style={styles.registerLink} onPress={() => router.replace('/signUp')}>Registrate</Text>
+                ¿No tienes cuenta?{" "}
+                <Text
+                  style={styles.registerLink}
+                  onPress={() => router.replace("/signUp")}
+                >
+                  Registrate
+                </Text>
               </Text>
             </View>
           </View>
@@ -107,15 +175,15 @@ const router = useRouter();
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#CBE5FF',
+    backgroundColor: "#CBE5FF",
   },
   headerContainer: {
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 28,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   headerTextContainer: {
     flex: 1,
@@ -123,13 +191,13 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontWeight: "bold",
+    color: "#000000",
     marginBottom: 8,
   },
   welcomeSubtitle: {
     fontSize: 14,
-    color: '#333333',
+    color: "#333333",
     lineHeight: 20,
   },
   logo: {
@@ -138,7 +206,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -146,16 +214,16 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     marginBottom: 24,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 50,
@@ -170,46 +238,46 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#111827',
+    color: "#111827",
   },
   optionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     marginBottom: 28,
   },
   forgotPasswordText: {
     fontSize: 13,
-    color: '#3B82F6',
-    fontWeight: '500',
+    color: "#3B82F6",
+    fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: '#2B7A9E',
+    backgroundColor: "#2B7A9E",
     borderRadius: 24,
     height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   footerContainer: {
     marginTop: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   footerText: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
   },
   registerLink: {
-    color: '#3B82F6',
-    fontWeight: '600',
+    color: "#3B82F6",
+    fontWeight: "600",
   },
 });

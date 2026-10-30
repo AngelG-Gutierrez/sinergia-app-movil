@@ -1,7 +1,7 @@
-import { MedicalRecordsAdminView } from "@/features/medicalRecords/application/screens/medicalRecordsAdminView";
+import { MedicalRecordsView } from "@/features/medicalRecords/application/screens/medicalRecordsView";
 
 export default function MedicalRecordsScreen() {
     return (
-        <MedicalRecordsAdminView></MedicalRecordsAdminView>
+        <MedicalRecordsView></MedicalRecordsView>
     )
 }
