@@ -1,20 +1,64 @@
+import { httpClient } from '@/core/api/axios.adapter';
 import { Stack, useRouter } from 'expo-router';
 import { ChevronRight, ClipboardList, Dumbbell } from 'lucide-react-native';
-import { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+interface Prescription {
+  id: string;
+  patientId: string;
+  exerciseName: string;
+  description: string;
+  frequency: string;
+  mediaUrl?: string;
+  createdAt: string;
+}
 
 export function PrescriptionsView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
-  const exercises = [
-    { id: '1', title: 'Título de ejercicio', details: 'Cantidad o detalles de la repetición', status: 'Completada', statusColor: '#2B7A9E' },
-    { id: '2', title: 'Título de ejercicio', details: 'Cantidad o detalles de la repetición', status: 'Pendiente', statusColor: '#4B5563' },
-    { id: '3', title: 'Título de ejercicio', details: 'Cantidad o detalles de la repetición', status: 'Completada', statusColor: '#2B7A9E' },
-    { id: '4', title: 'Título de ejercicio', details: 'Cantidad o detalles de la repetición', status: 'Completada', statusColor: '#2B7A9E' },
-  ];
+  const [exercises, setExercises] = useState<Prescription[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchPrescriptions() {
+      try {
+        setLoading(true);
+        const data = await httpClient.get<Prescription[]>('/prescriptions/single');
+        setExercises(data);
+      } catch (error) {
+        console.error('Error al obtener las prescripciones:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPrescriptions();
+  }, []);
+
+  // Datos dinámicos para la tarjeta de "Plan Actual"
+  const totalExercises = exercises.length;
+  const latestDate = exercises.length > 0
+    ? new Date(exercises[0].createdAt).toLocaleDateString()
+    : 'Sin fecha';
+
+  // Como el backend aún no cuenta con el campo de estatus en Prisma, 
+  // mapeamos temporalmente un estatus visual para que los filtros y las tarjetas operen correctamente.
+  const mappedExercises = exercises.map((item, index) => ({
+    ...item,
+    status: index % 2 === 0 ? 'Completada' : 'Pendiente',
+    statusColor: index % 2 === 0 ? '#2B7A9E' : '#4B5563',
+  }));
+
+  // Filtrado de las tarjetas según la pestaña seleccionada
+  const filteredExercises = mappedExercises.filter((item) => {
+    if (filter === 'pending') return item.status === 'Pendiente';
+    if (filter === 'completed') return item.status === 'Completada';
+    return true; // 'all'
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -40,23 +84,24 @@ export function PrescriptionsView() {
           </View>
         </View>
 
+        {/* Tarjeta Plan Actual Dinámica */}
         <View style={styles.planCard}>
           <View style={styles.planHeaderRow}>
             <ClipboardList color="#FFFFFF" size={20} />
             <Text style={styles.planHeaderText}>PLAN ACTUAL</Text>
           </View>
 
-          <Text style={styles.planTitle}>Título de plan de ejercicio</Text>
+          <Text style={styles.planTitle}>Plan Fisioterapéutico</Text>
           <View style={styles.planDivider} />
 
           <View style={styles.planInfoRow}>
             <View>
               <Text style={styles.planLabel}>Fecha de asignación</Text>
-              <Text style={styles.planValue}>dd / mm / aaaa</Text>
+              <Text style={styles.planValue}>{latestDate}</Text>
             </View>
             <View>
               <Text style={styles.planLabel}>Total de ejercicios</Text>
-              <Text style={styles.planValue}>00 ejercicios</Text>
+              <Text style={styles.planValue}>{totalExercises} ejercicios</Text>
             </View>
           </View>
 
@@ -65,6 +110,7 @@ export function PrescriptionsView() {
           </TouchableOpacity>
         </View>
 
+        {/* Pestañas de filtrado */}
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
@@ -91,31 +137,48 @@ export function PrescriptionsView() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.exercisesList}>
-          {exercises.map((item, index) => (
-            <View key={index} style={styles.exerciseCard}>
-              <View style={styles.exerciseIconBox}>
-                <Dumbbell color="#000000" size={24} />
-              </View>
+        {/* Lista de Ejercicios o Indicador de Carga */}
+        {loading ? (
+          <View style={{ marginTop: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#237397" />
+            <Text style={{ marginTop: 10, color: '#4B5563' }}>Cargando ejercicios...</Text>
+          </View>
+        ) : (
+          <View style={styles.exercisesList}>
+            {filteredExercises.length > 0 ? (
+              filteredExercises.map((item) => (
+                <View key={item.id} style={styles.exerciseCard}>
+                  <View style={styles.exerciseIconBox}>
+                    <Dumbbell color="#000000" size={24} />
+                  </View>
 
-              <View style={styles.exerciseInfo}>
-                <Text style={styles.exerciseTitle}>{item.title}</Text>
-                <Text style={styles.exerciseDetails}>{item.details}</Text>
-                <Text style={styles.exerciseStatusLabel}>
-                  Estatus: <Text style={[styles.exerciseStatusValue, { color: item.statusColor }]}>{item.status}</Text>
-                </Text>
-              </View>
+                  <View style={styles.exerciseInfo}>
+                    <Text style={styles.exerciseTitle}>{item.exerciseName}</Text>
+                    <Text style={styles.exerciseDetails}>{item.frequency} - {item.description}</Text>
+                    <Text style={styles.exerciseStatusLabel}>
+                      Estatus: <Text style={[styles.exerciseStatusValue, { color: item.statusColor }]}>{item.status}</Text>
+                    </Text>
+                  </View>
 
-              <TouchableOpacity
-                style={styles.actionArrow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/(patient)/prescriptionsDetails")}
-              >
-                <ChevronRight color="#FFFFFF" size={20} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+                  <TouchableOpacity
+                    style={styles.actionArrow}
+                    activeOpacity={0.8}
+                    onPress={() => router.push({
+                      pathname: "/(patient)/prescriptionsDetails",
+                      params: { prescriptionId: item.id }
+                    })}
+                  >
+                    <ChevronRight color="#FFFFFF" size={20} />
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={{ textAlign: 'center', color: '#4B5563', marginTop: 20 }}>
+                No se encontraron ejercicios asignados.
+              </Text>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

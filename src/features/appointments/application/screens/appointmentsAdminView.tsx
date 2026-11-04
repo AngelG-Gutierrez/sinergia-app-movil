@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router';
 import { Bell, ChevronRight, Clock, Menu, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -18,7 +17,6 @@ export function AppointmentsAdminView() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor="#CBE5FF" />
 
       <ScrollView

@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router';
 import { Bell, Calendar, ChevronRight, Dumbbell, FolderKanban, Plus, Users } from 'lucide-react-native';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +19,6 @@ export function HomeAdminView() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor="#CBE5FF" />
 
       <ScrollView
