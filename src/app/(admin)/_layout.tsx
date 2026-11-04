@@ -6,7 +6,6 @@ export default function AdminDrawerLayout() {
       <Drawer.Screen name="home" options={{ title: 'Inicio' }} />
       <Drawer.Screen name="appointments" options={{ title: 'Agenda' }} />
       <Drawer.Screen name="medicalRecords" options={{ title: 'Expedientes Médicos' }} />
-      <Drawer.Screen name="patientList" options={{ title: 'Lista de pacientes' }}/>
       <Drawer.Screen name="exercises" options={{ title: 'Repretorio de ejercicios' }}/>
       <Drawer.Screen name="notifications" options={{ title: 'Notificaciones' }}/>
       <Drawer.Screen name="profile" options={{ title: 'Perfil' }}/>
