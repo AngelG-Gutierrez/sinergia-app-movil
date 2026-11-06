@@ -1,49 +1,97 @@
-import { Stack, useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, Dumbbell } from 'lucide-react-native';
-import { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  Calendar,
+  Dumbbell,
+  RefreshCw,
+} from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+import { useNotifications } from '../hooks/useNotifications';
+
+type Filter = 'all' | 'unread' | 'read';
 
 export function NotificationsView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
-  const notifications = [
-    {
-      id: '1',
-      type: 'exercise',
-      title: 'Título de la notificación',
-      description: 'Texto rápido de la notificación, se puede extender un poco',
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'appointment',
-      title: 'Título de la notificación',
-      description: 'Texto rápido de la notificación, se puede extender un poco',
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'exercise',
-      title: 'Título de la notificación',
-      description: 'Texto rápido de la notificación, se puede extender un poco',
-      read: true,
-    },
-    {
-      id: '4',
-      type: 'exercise',
-      title: 'Título de la notificación',
-      description: 'Texto rápido de la notificación, se puede extender un poco',
-      read: true,
-    },
-  ];
+  const [filter, setFilter] = useState<Filter>('all');
+
+  const {
+    notifications,
+    loading,
+    error,
+    refresh,
+    markAsRead,
+  } = useNotifications();
+
+  // Actualizar cada vez que se abre esta pantalla.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
+
+  const unreadCount = useMemo(
+    () => notifications.filter((item) => !item.read).length,
+    [notifications],
+  );
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((item) => {
+      if (filter === 'unread') return !item.read;
+      if (filter === 'read') return item.read;
+      return true;
+    });
+  }, [notifications, filter]);
+
+  const handleNotificationPress = async (id: string) => {
+    const notification = notifications.find(
+      (item) => item.id === id,
+    );
+
+    if (!notification || notification.read) return;
+
+    try {
+      await markAsRead(id);
+    } catch (err) {
+      console.error('Error marcando notificación:', err);
+
+      Alert.alert(
+        'Error',
+        'No fue posible marcar la notificación como leída.',
+      );
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+    >
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar barStyle="dark-content" backgroundColor="#CBE5FF" />
+
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#CBE5FF"
+      />
 
       <ScrollView
         contentContainerStyle={[
@@ -52,62 +100,141 @@ export function NotificationsView() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Encabezado */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
-            activeOpacity={0.7}
           >
             <ArrowLeft color="#000000" size={20} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notificaciones</Text>
+
+          <Text style={styles.headerTitle}>
+            Notificaciones
+          </Text>
+
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={() => void refresh()}
+            disabled={loading}
+          >
+            <RefreshCw color="#1769AA" size={20} />
+          </TouchableOpacity>
         </View>
 
+        {/* Contador */}
+        <Text style={styles.summaryText}>
+          {unreadCount} notificaciones sin leer
+        </Text>
+
+        {/* Filtros */}
         <View style={styles.filterContainer}>
-          <TouchableOpacity
-            style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-            onPress={() => setFilter('all')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
-              Todas
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
-            onPress={() => setFilter('unread')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterTabText, filter === 'unread' && styles.filterTabTextActive]}>
-              No leídas
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterTab, filter === 'read' && styles.filterTabActive]}
-            onPress={() => setFilter('read')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterTabText, filter === 'read' && styles.filterTabTextActive]}>
-              Leídas
-            </Text>
-          </TouchableOpacity>
+          {(
+            [
+              ['all', 'Todas'],
+              ['unread', 'No leídas'],
+              ['read', 'Leídas'],
+            ] as const
+          ).map(([value, label]) => (
+            <TouchableOpacity
+              key={value}
+              style={[
+                styles.filterTab,
+                filter === value && styles.filterTabActive,
+              ]}
+              onPress={() => setFilter(value)}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  filter === value &&
+                  styles.filterTabTextActive,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
+        {/* Cargando */}
+        {loading && (
+          <ActivityIndicator
+            color="#208AEF"
+            size="large"
+            style={styles.loading}
+          />
+        )}
+
+        {/* Error */}
+        {error && (
+          <View style={styles.messageBox}>
+            <Text style={styles.errorText}>{error}</Text>
+
+            <TouchableOpacity onPress={() => void refresh()}>
+              <Text style={styles.retryText}>
+                Intentar nuevamente
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Notificaciones reales */}
         <View style={styles.notificationsList}>
-          {notifications.map((item) => (
-            <View key={item.id} style={styles.notificationCard}>
-              <View style={styles.cardHeaderRow}>
-                {item.type === 'exercise' ? (
-                  <Dumbbell color="#000000" size={22} style={styles.cardIcon} />
-                ) : (
-                  <Calendar color="#000000" size={22} style={styles.cardIcon} />
-                )}
-                <Text style={styles.notificationTitle}>{item.title}</Text>
+          {!loading &&
+            !error &&
+            filteredNotifications.length === 0 && (
+              <View style={styles.messageBox}>
+                <Text style={styles.emptyText}>
+                  No hay notificaciones para mostrar.
+                </Text>
               </View>
-              <Text style={styles.notificationDescription}>{item.description}</Text>
-            </View>
+            )}
+
+          {filteredNotifications.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.notificationCard,
+                !item.read && styles.unreadCard,
+              ]}
+              activeOpacity={0.8}
+              onPress={() =>
+                void handleNotificationPress(item.id)
+              }
+            >
+              <View style={styles.cardHeaderRow}>
+                {item.type === 'EXERCISE_PLAN_ASSIGNED' ? (
+                  <Dumbbell color="#000000" size={22} />
+                ) : (
+                  <Calendar color="#000000" size={22} />
+                )}
+
+                <Text style={styles.notificationTitle}>
+                  {item.title}
+                </Text>
+
+                {!item.read && (
+                  <View style={styles.unreadDot} />
+                )}
+              </View>
+
+              <Text style={styles.notificationDescription}>
+                {item.body}
+              </Text>
+
+              <Text style={styles.notificationDate}>
+                {new Date(item.createdAt).toLocaleString(
+                  'es-MX',
+                )}
+              </Text>
+
+              {!item.read && (
+                <Text style={styles.unreadLabel}>
+                  Toca para marcar como leída
+                </Text>
+              )}
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
@@ -127,7 +254,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 12,
   },
   backButton: {
@@ -137,22 +264,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000',
+    flex: 1,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryText: {
+    fontSize: 13,
+    color: '#374151',
+    marginBottom: 18,
   },
   filterContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
     gap: 8,
+    marginBottom: 20,
   },
   filterTab: {
     flex: 1,
@@ -163,16 +296,12 @@ const styles = StyleSheet.create({
   },
   filterTabActive: {
     backgroundColor: '#FFFFFF',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   filterTabText: {
     fontSize: 13,
     color: '#374151',
     fontWeight: '500',
+    textAlign: 'center',
   },
   filterTabTextActive: {
     color: '#111827',
@@ -188,14 +317,14 @@ const styles = StyleSheet.create({
     borderColor: '#9CA3AF',
     padding: 16,
   },
+  unreadCard: {
+    borderColor: '#208AEF',
+  },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
     gap: 10,
-  },
-  cardIcon: {
-    marginRight: 2,
   },
   notificationTitle: {
     fontSize: 16,
@@ -206,7 +335,42 @@ const styles = StyleSheet.create({
   notificationDescription: {
     fontSize: 13,
     color: '#4B5563',
-    lineHeight: 18,
-    paddingLeft: 34,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  notificationDate: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  unreadDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#208AEF',
+  },
+  unreadLabel: {
+    marginTop: 8,
+    fontSize: 11,
+    color: '#1769AA',
+  },
+  loading: {
+    marginVertical: 20,
+  },
+  messageBox: {
+    padding: 25,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#4B5563',
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#B91C1C',
+    textAlign: 'center',
+  },
+  retryText: {
+    marginTop: 10,
+    color: '#1769AA',
+    fontWeight: 'bold',
   },
 });
