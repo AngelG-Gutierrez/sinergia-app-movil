@@ -1,4 +1,5 @@
 import { queryClient } from "@/core/query/query-client";
+import { deactivatePushDevice } from '@/features/notifications/infraestructure/datasources/pushDeviceDatasource';
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -19,9 +20,9 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loaded: false,
-  setUser: () => {},
-  setSession: async () => {},
-  signOut: async () => {},
+  setUser: () => { },
+  setSession: async () => { },
+  signOut: async () => { },
   checkLogued: async () => false,
 });
 
@@ -63,17 +64,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Cierra sesión limpiando SecureStore, el estado y la caché de TanStack Query
+
   const signOut = async () => {
     try {
+      // Desactivar push mientras todavía existe el JWT.
+      await deactivatePushDevice();
+
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_KEY);
+
       setUser(null);
-      queryClient.clear(); // Limpia datos en caché de citas/expedientes del usuario anterior
-      router.replace("/login");
+      queryClient.clear();
+
+      router.replace('/login');
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error('Error al cerrar sesión:', error);
     }
   };
+
 
   // Verifica si el token sigue existiendo en el almacenamiento seguro
   const checkLogued = async (): Promise<boolean> => {
