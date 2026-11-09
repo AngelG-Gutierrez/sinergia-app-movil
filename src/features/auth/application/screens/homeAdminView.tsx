@@ -1,4 +1,4 @@
-import { Bell, Calendar, ChevronRight, Dumbbell, FolderKanban, Plus, Users } from 'lucide-react-native';
+import { Calendar, ChevronRight, CirclePlus, Dumbbell, FolderKanban, Users } from 'lucide-react-native';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,11 +24,11 @@ export function HomeAdminView() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 24) },
+          { paddingBottom: Math.max(insets.bottom) },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
+        {/*<View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
             <Bell color="#000000" size={24} />
           </TouchableOpacity>
@@ -36,7 +36,7 @@ export function HomeAdminView() {
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>A</Text>
           </View>
-        </View>
+        </View>*/}
 
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeSubtitle}>¡Bienvenido!</Text>
@@ -84,15 +84,18 @@ export function HomeAdminView() {
         </View>
 
         <View style={styles.quickActionsContainer}>
-          <Text style={styles.quickActionsTitle}>Acciones rápidas</Text>
+          <View style={styles.quickActionsRow}>
+            <CirclePlus />
+            <Text style={styles.quickActionsTitle}>Acciones rápidas</Text>
+          </View>
           <View style={styles.quickActionsRow}>
             <TouchableOpacity style={styles.primaryActionBtn} activeOpacity={0.8}>
-              <Plus color="#FFFFFF" size={18} style={{ marginRight: 6 }} />
+              {/*<Plus color="#FFFFFF" size={18} style={{ marginRight: 6 }} />*/}
               <Text style={styles.primaryActionText}>Nueva prescripción</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.secondaryActionBtn} activeOpacity={0.8}>
-              <Plus color="#2B7A9E" size={18} style={{ marginRight: 6 }} />
+              {/*<Plus color="#2B7A9E" size={18} style={{ marginRight: 6 }} />*/}
               <Text style={styles.secondaryActionText}>Nuevo expediente</Text>
             </TouchableOpacity>
           </View>
@@ -136,7 +139,7 @@ export function HomeAdminView() {
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderLeft}>
               <Users color="#000000" size={20} />
-              <Text style={styles.cardTitleText}>Pacientes recientes</Text>
+              <Text style={styles.cardTitleText}>Pacientes atendidos recientemente</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7}>
               <Text style={styles.seeAllText}>Ver todos {'>'}{'>'}</Text>
@@ -175,7 +178,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -209,7 +211,7 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
   userName: {
-    fontSize: 24,
+    fontSize: 33,
     fontWeight: 'bold',
     color: '#000000',
   },
@@ -263,10 +265,10 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   quickActionsTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 8
   },
   quickActionsRow: {
     flexDirection: 'row',
@@ -311,15 +313,16 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   cardHeaderRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 14,
+    gap: 5,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    maxWidth: '80%',
   },
   cardTitleText: {
     fontSize: 15,
@@ -374,10 +377,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#111827',
+    lineHeight: 20,
     marginBottom: 2,
   },
   appointmentMeta: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 20,
     color: '#4B5563',
   },
   patientItem: {
@@ -405,17 +410,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   patientCode: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#6B7280',
   },
   patientFullName: {
     fontSize: 14,
     fontWeight: 'bold',
+    lineHeight: 20,
     color: '#111827',
   },
   patientDiscomfort: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 20,
     color: '#4B5563',
   },
   actionArrow: {

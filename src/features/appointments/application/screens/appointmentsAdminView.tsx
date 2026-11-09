@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, Clock, Menu, Search } from 'lucide-react-native';
+import { ChevronRight, Clock, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,7 @@ export function AppointmentsAdminView() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
+        {/*<View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
             <Menu color="#000000" size={24} />
           </TouchableOpacity>
@@ -39,7 +39,7 @@ export function AppointmentsAdminView() {
               <Text style={styles.avatarText}>A</Text>
             </View>
           </View>
-        </View>
+        </View>*/}
 
         <View style={styles.titleSection}>
           <View style={styles.titleIconBox}>
@@ -47,7 +47,7 @@ export function AppointmentsAdminView() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.screenTitle}>Agenda</Text>
-            <Text style={styles.screenSubtitle}>Administra y configura.</Text>
+            <Text style={styles.screenSubtitle}>Administra tus citas fisioterapeuticas</Text>
           </View>
         </View>
 
@@ -74,17 +74,6 @@ export function AppointmentsAdminView() {
         </View>
 
         <Text style={styles.sectionHeaderTitle}>Listado de citas registradas</Text>
-
-        <View style={styles.searchContainer}>
-          <Search color="#9CA3AF" size={20} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Busca por ID o paciente"
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
 
         <View style={styles.filterContainer}>
           <TouchableOpacity
@@ -118,6 +107,17 @@ export function AppointmentsAdminView() {
           >
             <Text style={[styles.filterTabText, filter === 'cancelled' && styles.filterTabTextActive]}>Canceladas</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <Search color="#9CA3AF" size={20} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Busca por ID o paciente"
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
 
         <View style={styles.appointmentsList}>
@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 12,
   },
   headerRow: {
     flexDirection: 'row',
