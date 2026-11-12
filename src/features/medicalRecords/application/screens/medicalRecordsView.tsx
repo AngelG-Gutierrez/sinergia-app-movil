@@ -230,7 +230,7 @@ export function MedicalRecordsView() {
                 </View>
 
                 <View style={styles.arrowButton}>
-                  <ChevronRight color="#FFFFFF" size={22} />
+                  <ChevronRight color="#000000" size={22} />
                 </View>
               </TouchableOpacity>
             ))}
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   recordDate: { fontSize: 12, color: '#4B5563', marginVertical: 2 },
   recordStatusLabel: { fontSize: 12, color: '#374151' },
   recordStatusValue: { color: '#2B7A9E', fontWeight: 'bold' },
-  arrowButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2B7A9E', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
+  arrowButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D1E7EB', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
   floatingButton: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2B7A9E', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 4, zIndex: 99 },
   searchResultText: {
   fontSize: 14,
