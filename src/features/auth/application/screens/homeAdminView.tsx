@@ -1,46 +1,329 @@
-import { Calendar, ChevronRight, CirclePlus, Dumbbell, FolderKanban, Users } from 'lucide-react-native';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { useFocusEffect, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import {
+  Calendar,
+  ChevronRight,
+  CirclePlus,
+  Dumbbell,
+  FolderKanban,
+  Users,
+} from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type Patient = {
+  id: string;
+  name: string;
+  email?: string;
+  birthDate?: string;
+};
+
+type Appointment = {
+  id: string;
+  date: string;
+  status: 'activa' | 'finalizada' | 'cancelada';
+  reason: string;
+  createdAt: string;
+  patients: {
+    id: string;
+    appointmentId: string;
+    patientId: string;
+    patient: Patient;
+  }[];
+};
+
+type MedicalRecord = {
+  id: string;
+  patientId: string;
+  diagnosis: string;
+  history: string;
+  evolution: string;
+  createdAt: string;
+  patient: Patient;
+};
+
+type AttendedPatient = {
+  id: string;
+  name: string;
+  reason: string;
+  appointmentDate: string;
+  medicalRecordId: string;
+};
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '');
+
+const getMexicoDateKey = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return `${year}-${month}-${day}`;
+};
+
+const formatAppointmentTime = (date: string) => {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) return 'Horario no disponible';
+
+  return new Intl.DateTimeFormat('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Mexico_City',
+  }).format(parsedDate);
+};
+
+const getAppointmentStatus = (status: Appointment['status']) => {
+  switch (status) {
+    case 'activa':
+      return {
+        label: 'Próxima',
+        backgroundColor: '#FEF08A',
+        textColor: '#854D0E',
+      };
+    case 'finalizada':
+      return {
+        label: 'Completada',
+        backgroundColor: '#BBF7D0',
+        textColor: '#166534',
+      };
+    case 'cancelada':
+      return {
+        label: 'Cancelada',
+        backgroundColor: '#FECACA',
+        textColor: '#991B1B',
+      };
+    default:
+      return {
+        label: 'Pendiente',
+        backgroundColor: '#BAE6FD',
+        textColor: '#0369A1',
+      };
+  }
+};
+
+const getInitials = (name: string) => {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'P';
+};
+
 export function HomeAdminView() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const appointments = [
-    { id: '1', code: '#001', tag: 'Próxima', tagColor: '#FEF08A', tagTextColor: '#854D0E', name: 'Nombre del paciente', time: '10:00 a.m || Revisión general' },
-    { id: '2', code: '#002', tag: 'Pendiente', tagColor: '#BAE6FD', tagTextColor: '#0369A1', name: 'Nombre del paciente', time: '10:00 a.m || Revisión general' },
-    { id: '3', code: '#002', tag: 'Pendiente', tagColor: '#BAE6FD', tagTextColor: '#0369A1', name: 'Nombre del paciente', time: '10:00 a.m || Revisión general' },
-  ];
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const patients = [
-    { id: '1', code: 'Id #001', name: 'Nombre del Paciente', discomfort: 'Molestia del paciente' },
-    { id: '2', code: 'Id #002', name: 'Nombre del Paciente', discomfort: 'Molestia del paciente' },
-    { id: '3', code: 'Id #003', name: 'Nombre del Paciente', discomfort: 'Molestia del paciente' },
-  ];
+  const [selectedAppointment, setSelectedAppointment] =
+  useState<Appointment | null>(null);
+
+  // Carga los datos cada vez que se abre o recupera el foco del dashboard.
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const token = await SecureStore.getItemAsync('access_token');
+
+      if (!token) {
+        throw new Error('No se encontró una sesión activa.');
+      }
+
+      if (!API_URL) {
+        throw new Error('No se encontró EXPO_PUBLIC_API_URL.');
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [appointmentsResponse, recordsResponse] = await Promise.all([
+        fetch(`${API_URL}/appointments`, {
+          method: 'GET',
+          headers,
+        }),
+        fetch(`${API_URL}/create-medical-records`, {
+          method: 'GET',
+          headers,
+        }),
+      ]);
+
+      if (!appointmentsResponse.ok) {
+        throw new Error(
+          `No se pudieron cargar las citas. Código: ${appointmentsResponse.status}`
+        );
+      }
+
+      if (!recordsResponse.ok) {
+        throw new Error(
+          `No se pudieron cargar los expedientes. Código: ${recordsResponse.status}`
+        );
+      }
+
+      const appointmentsData: Appointment[] = await appointmentsResponse.json();
+      const recordsData: MedicalRecord[] = await recordsResponse.json();
+
+      setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+      setMedicalRecords(Array.isArray(recordsData) ? recordsData : []);
+    } catch (error) {
+      console.error('Error al cargar el dashboard:', error);
+
+      Alert.alert(
+        'No se pudo cargar el inicio',
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [fetchDashboardData])
+  );
+
+  const todayKey = getMexicoDateKey(new Date());
+
+  // Citas cuya fecha corresponde al día actual en horario de México.
+  const appointmentsToday = useMemo(() => {
+    return appointments
+      .filter((appointment) => {
+        const appointmentDate = new Date(appointment.date);
+
+        return (
+          !Number.isNaN(appointmentDate.getTime()) &&
+          getMexicoDateKey(appointmentDate) === todayKey
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+  }, [appointments, todayKey]);
+
+  // La tarjeta de citas hoy muestra las que siguen activas.
+  const pendingAppointmentsToday = appointmentsToday.filter(
+    (appointment) => appointment.status === 'activa'
+  ).length;
+
+  // Relaciona las citas finalizadas con el expediente de cada paciente.
+  const recentlyAttendedPatients = useMemo(() => {
+    const finishedAppointments = appointments
+      .filter((appointment) => appointment.status === 'finalizada')
+      .sort(
+        (a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+    const uniquePatients = new Map<string, AttendedPatient>();
+
+    for (const appointment of finishedAppointments) {
+      for (const relation of appointment.patients || []) {
+        const patient = relation.patient;
+
+        if (!patient?.id || !patient.name) continue;
+
+        // Busca el expediente usando el ID del paciente.
+        const patientRecord = medicalRecords.find(
+          (record) =>
+            record.patientId === patient.id ||
+            record.patient?.id === patient.id
+        );
+
+        // Sin ID de expediente no podemos abrir la pantalla individual.
+        if (!patientRecord) continue;
+
+        // Al estar ordenadas las citas de más reciente a más antigua,
+        // la primera coincidencia será la última atención de ese paciente.
+        if (!uniquePatients.has(patient.id)) {
+          uniquePatients.set(patient.id, {
+            id: patient.id,
+            name: patient.name,
+            reason: appointment.reason || 'Atención realizada',
+            appointmentDate: appointment.date,
+            medicalRecordId: patientRecord.id,
+          });
+        }
+      }
+    }
+
+    return Array.from(uniquePatients.values()).slice(0, 3);
+  }, [appointments, medicalRecords]);
+
+  const handleOpenMedicalRecord = (recordId: string) => {
+    router.push({
+      pathname: '/(admin)/individualMedicalRecord',
+      params: { id: recordId },
+    });
+  };
+
+  const handleCreateMedicalRecord = () => {
+    router.push('/(admin)/createMedicalRecord');
+  };
+
+  const handleOpenAppointmentDetails = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+  };
+
+  const handleCloseAppointmentDetails = () => {
+    setSelectedAppointment(null);
+  };
+
+  const formatAppointmentDate = (date: string) => {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return 'Fecha no disponible';
+    }
+
+    return new Intl.DateTimeFormat('es-MX', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Mexico_City',
+    }).format(parsedDate);
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#CBE5FF" />
 
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom) },
+          { paddingBottom: Math.max(insets.bottom, 24) },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/*<View style={styles.headerRow}>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
-            <Bell color="#000000" size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>A</Text>
-          </View>
-        </View>*/}
-
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeSubtitle}>¡Bienvenido!</Text>
-          <Text style={styles.userName}>Nombre de usuario</Text>
+          <Text style={styles.userName}>Jesus Alberto</Text>
         </View>
 
         <Text style={styles.sectionHeaderTitle}>RESUMEN GENERAL</Text>
@@ -51,7 +334,9 @@ export function HomeAdminView() {
               <Calendar color="#2B7A9E" size={22} />
               <Text style={styles.statHeaderLabel}>Citas hoy</Text>
             </View>
-            <Text style={styles.statNumber}>00</Text>
+            <Text style={styles.statNumber}>
+              {isLoading ? '...' : String(pendingAppointmentsToday).padStart(2, '0')}
+            </Text>
             <Text style={styles.statSubtext}>Pendientes</Text>
           </View>
 
@@ -78,24 +363,33 @@ export function HomeAdminView() {
               <FolderKanban color="#2B7A9E" size={22} />
               <Text style={styles.statHeaderLabel}>Expedientes</Text>
             </View>
-            <Text style={styles.statNumber}>00</Text>
+            <Text style={styles.statNumber}>
+              {isLoading ? '...' : String(medicalRecords.length).padStart(2, '0')}
+            </Text>
             <Text style={styles.statSubtext}>Registrados</Text>
           </View>
         </View>
 
         <View style={styles.quickActionsContainer}>
           <View style={styles.quickActionsRow}>
-            <CirclePlus />
+            <CirclePlus color="#2B7A9E" size={22} />
             <Text style={styles.quickActionsTitle}>Acciones rápidas</Text>
           </View>
+
           <View style={styles.quickActionsRow}>
-            <TouchableOpacity style={styles.primaryActionBtn} activeOpacity={0.8}>
-              {/*<Plus color="#FFFFFF" size={18} style={{ marginRight: 6 }} />*/}
+            <TouchableOpacity
+              style={styles.primaryActionBtn}
+              activeOpacity={0.8}
+              disabled
+            >
               <Text style={styles.primaryActionText}>Nueva prescripción</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryActionBtn} activeOpacity={0.8}>
-              {/*<Plus color="#2B7A9E" size={18} style={{ marginRight: 6 }} />*/}
+            <TouchableOpacity
+              style={styles.secondaryActionBtn}
+              activeOpacity={0.8}
+              onPress={handleCreateMedicalRecord}
+            >
               <Text style={styles.secondaryActionText}>Nuevo expediente</Text>
             </TouchableOpacity>
           </View>
@@ -107,31 +401,67 @@ export function HomeAdminView() {
               <Calendar color="#000000" size={20} />
               <Text style={styles.cardTitleText}>Agenda de citas (hoy)</Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.replace('/(admin)/appointments')}>
               <Text style={styles.seeAllText}>Ver todas {'>'}{'>'}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.subListContainer}>
-            {appointments.map((item) => (
-              <View key={item.id} style={styles.appointmentItem}>
-                <View style={styles.appointmentInfo}>
-                  <View style={styles.appointmentTopRow}>
-                    <View style={styles.codeBadge}>
-                      <Text style={styles.codeBadgeText}>{item.code}</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#2B7A9E" style={{ padding: 20 }} />
+            ) : appointmentsToday.length === 0 ? (
+              <Text style={styles.emptyText}>
+                No hay citas programadas para hoy.
+              </Text>
+            ) : (
+              appointmentsToday.slice(0, 3).map((item) => {
+                const patientName =
+                  item.patients?.[0]?.patient?.name || 'Paciente sin asignar';
+
+                const status = getAppointmentStatus(item.status);
+
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.appointmentItem}
+                    activeOpacity={0.75}
+                    onPress={() => handleOpenAppointmentDetails(item)}
+                  >
+                    <View style={styles.appointmentInfo}>
+                      <View style={styles.appointmentTopRow}>
+                        <View style={styles.codeBadge}>
+                          <Text style={styles.codeBadgeText}>
+                            #{item.id.slice(0, 6)}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            styles.statusTag,
+                            { backgroundColor: status.backgroundColor },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.statusTagText,
+                              { color: status.textColor },
+                            ]}
+                          >
+                            {status.label}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.patientName}>{patientName}</Text>
+
+                      <Text style={styles.appointmentMeta}>
+                        {formatAppointmentTime(item.date)} || {item.reason || 'Sin motivo especificado'}
+                      </Text>
                     </View>
-                    <View style={[styles.statusTag, { backgroundColor: item.tagColor }]}>
-                      <Text style={[styles.statusTagText, { color: item.tagTextColor }]}>{item.tag}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.patientName}>{item.name}</Text>
-                  <Text style={styles.appointmentMeta}>{item.time}</Text>
-                </View>
-                <TouchableOpacity style={styles.actionArrow} activeOpacity={0.8}>
-                  <ChevronRight color="#FFFFFF" size={20} />
-                </TouchableOpacity>
-              </View>
-            ))}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
 
@@ -139,37 +469,177 @@ export function HomeAdminView() {
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderLeft}>
               <Users color="#000000" size={20} />
-              <Text style={styles.cardTitleText}>Pacientes atendidos recientemente</Text>
+              <Text style={styles.cardTitleText}>
+                Pacientes atendidos recientemente
+              </Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.seeAllText}>Ver todos {'>'}{'>'}</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.subListContainer}>
-            {patients.map((item) => (
-              <View key={item.id} style={styles.patientItem}>
-                <View style={styles.patientAvatarBox}>
-                  <Text style={styles.patientAvatarText}>NP</Text>
-                </View>
+            {isLoading ? (
+              <ActivityIndicator color="#2B7A9E" style={{ padding: 20 }} />
+            ) : recentlyAttendedPatients.length === 0 ? (
+              <Text style={styles.emptyText}>
+                Todavía no hay pacientes atendidos con expediente registrado.
+              </Text>
+            ) : (
+              recentlyAttendedPatients.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.patientItem}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    handleOpenMedicalRecord(item.medicalRecordId)
+                  }
+                >
+                  <View style={styles.patientAvatarBox}>
+                    <Text style={styles.patientAvatarText}>
+                      {getInitials(item.name)}
+                    </Text>
+                  </View>
 
-                <View style={styles.patientInfo}>
-                  <Text style={styles.patientCode}>{item.code}</Text>
-                  <Text style={styles.patientFullName}>{item.name}</Text>
-                  <Text style={styles.patientDiscomfort}>{item.discomfort}</Text>
-                </View>
+                  <View style={styles.patientInfo}>
+                    <Text style={styles.patientCode}>
+                      ID #{item.id.slice(0, 8)}
+                    </Text>
+                    <Text style={styles.patientFullName}>{item.name}</Text>
+                    <Text style={styles.patientDiscomfort} numberOfLines={1}>
+                      {item.reason}
+                    </Text>
+                  </View>
 
-                <TouchableOpacity style={styles.actionArrow} activeOpacity={0.8}>
-                  <ChevronRight color="#FFFFFF" size={20} />
+                  <View style={styles.actionArrow}>
+                    <ChevronRight color="#FFFFFF" size={20} />
+                  </View>
                 </TouchableOpacity>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
+      <Modal
+        visible={selectedAppointment !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleCloseAppointmentDetails}
+      >
+        <View style={styles.modalOverlay}>
+          {selectedAppointment && (() => {
+            const appointment = selectedAppointment;
+            const status = getAppointmentStatus(appointment.status);
+
+            return (
+              <View style={styles.appointmentModalCard}>
+                <View style={styles.appointmentModalHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.appointmentModalTitle}>
+                      Detalles de la cita
+                    </Text>
+                    <Text style={styles.appointmentModalSubtitle}>
+                      ID: #{appointment.id.slice(0, 8)}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.appointmentModalClose}
+                    onPress={handleCloseAppointmentDetails}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.appointmentModalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View
+                  style={[
+                    styles.appointmentModalStatus,
+                    { backgroundColor: status.backgroundColor },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.appointmentModalStatusText,
+                      { color: status.textColor },
+                    ]}
+                  >
+                    {status.label}
+                  </Text>
+                </View>
+
+                <View style={styles.appointmentDetailBlock}>
+                  <Text style={styles.appointmentDetailLabel}>
+                    Fecha y hora
+                  </Text>
+                  <Text style={styles.appointmentDetailValue}>
+                    {formatAppointmentDate(appointment.date)}
+                  </Text>
+                </View>
+
+                <View style={styles.appointmentDetailBlock}>
+                  <Text style={styles.appointmentDetailLabel}>
+                    Motivo de la cita
+                  </Text>
+                  <Text style={styles.appointmentDetailValue}>
+                    {appointment.reason || 'Sin motivo especificado'}
+                  </Text>
+                </View>
+
+                <View style={styles.appointmentDetailBlock}>
+                  <Text style={styles.appointmentDetailLabel}>
+                    Paciente asociado
+                  </Text>
+
+                  {appointment.patients?.length > 0 ? (
+                    appointment.patients.map((relation) => (
+                      <View
+                        key={relation.id}
+                        style={styles.appointmentModalPatient}
+                      >
+                        <View style={styles.patientAvatarBox}>
+                          <Text style={styles.patientAvatarText}>
+                            {getInitials(relation.patient?.name || 'Paciente')}
+                          </Text>
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.appointmentDetailValue}>
+                            {relation.patient?.name || 'Sin nombre'}
+                          </Text>
+                          <Text style={styles.appointmentModalPatientEmail}>
+                            {relation.patient?.email || 'Sin correo registrado'}
+                          </Text>
+                          <Text style={styles.appointmentModalPatientId}>
+                            ID: {relation.patientId.slice(0, 8)}...
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.appointmentDetailValue}>
+                      No hay pacientes asociados a esta cita.
+                    </Text>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.appointmentModalButton}
+                  onPress={handleCloseAppointmentDetails}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.appointmentModalButtonText}>
+                    Cerrar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })()}
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -214,6 +684,7 @@ const styles = StyleSheet.create({
     fontSize: 33,
     fontWeight: 'bold',
     color: '#000000',
+    marginTop: 2,
   },
   sectionHeaderTitle: {
     fontSize: 11,
@@ -434,4 +905,113 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 10,
   },
+  emptyText: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingVertical: 18,
+    lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  appointmentModalCard: {
+    width: '100%',
+    maxWidth: 450,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 20,
+    elevation: 8,
+  },
+  appointmentModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  appointmentModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  appointmentModalSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  appointmentModalClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appointmentModalCloseText: {
+    fontSize: 17,
+    color: '#374151',
+    fontWeight: 'bold',
+  },
+  appointmentModalStatus: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  appointmentModalStatusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  appointmentDetailBlock: {
+    marginBottom: 16,
+  },
+  appointmentDetailLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  appointmentDetailValue: {
+    fontSize: 14,
+    color: '#111827',
+    lineHeight: 21,
+    fontWeight: '500',
+  },
+  appointmentModalPatient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 6,
+    gap: 10,
+  },
+  appointmentModalPatientEmail: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  appointmentModalPatientId: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  appointmentModalButton: {
+    height: 46,
+    backgroundColor: '#2B7A9E',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  appointmentModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
 });
