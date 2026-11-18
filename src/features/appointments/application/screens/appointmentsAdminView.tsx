@@ -298,7 +298,7 @@ export function AppointmentsAdminView() {
       >
         <View style={styles.titleSection}>
           <View style={styles.titleIconBox}>
-            <Clock color="#2B7A9E" size={24} />
+            <Clock color="#000000" size={24} />
           </View>
 
           <View style={{ flex: 1 }}>
@@ -617,17 +617,7 @@ const styles = StyleSheet.create({
   },
 
   titleIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    width: 44, height: 44, borderRadius: 12, backgroundColor: '#E5EFF7', alignItems: 'center', justifyContent: 'center'
   },
 
   screenTitle: {
