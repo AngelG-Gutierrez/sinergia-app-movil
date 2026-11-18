@@ -1,31 +1,44 @@
 // src/components/CustomDrawerContent.tsx
-import { Ionicons } from '@expo/vector-icons';
+import {
+  Bell,
+  CalendarDays,
+  ClipboardList,
+  House,
+  LucideIcon,
+  SportShoe,
+  User
+} from 'lucide-react-native';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type CustomDrawerContentProps = {
   state: { routes: Array<{ key: string; name: string }>; index: number };
   navigation: { navigate: (name: string) => void };
 };
-const drawerMetadata: Record<string, { title: string; icon: keyof typeof Ionicons.glyphMap }> = {
+
+const drawerMetadata: Record<string, { title: string; icon: LucideIcon }> = {
   home: {
-      title: 'Inicio',
-      icon: 'link'
+    title: 'Inicio',
+    icon: House,
   },
   appointments: {
     title: 'Agenda',
-    icon: 'calendar'
+    icon: CalendarDays,
   },
   medicalRecords: {
     title: 'Expedientes Médicos',
-    icon: 'clipboard'
+    icon: ClipboardList,
+  },
+  prescription: {
+    title: 'Prescripciones',
+    icon: SportShoe,
   },
   notifications: {
     title: 'Notificaciones',
-    icon: 'notifications'
+    icon: Bell,
   },
   profile: {
     title: 'Perfil',
-    icon: 'person'
+    icon: User,
   },
 };
 
@@ -49,6 +62,7 @@ export function CustomDrawerContent(props: CustomDrawerContentProps) {
         if (!metadata) return null;
 
         const isFocused = state.index === index;
+        const IconComponent = metadata.icon;
 
         return (
           <TouchableOpacity
@@ -58,8 +72,7 @@ export function CustomDrawerContent(props: CustomDrawerContentProps) {
             activeOpacity={0.7}
           >
             <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
-              <Ionicons 
-                name={metadata.icon} 
+              <IconComponent 
                 size={22} 
                 color={isFocused ? '#0284C7' : '#1E293B'} 
               />
@@ -84,8 +97,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   headerContainer: {
-    marginBottom: 20,
-    marginTop: 25,
+    marginTop: 15,
     paddingHorizontal: 4,
   },
   headerSubtitle: {

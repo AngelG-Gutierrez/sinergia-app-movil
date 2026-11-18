@@ -10,6 +10,8 @@ export default function AdminDrawerLayout() {
       <Drawer.Screen name="home" options={{ title: 'Inicio' }} />
       <Drawer.Screen name="appointments" options={{ title: 'Agenda' }} />
       <Drawer.Screen name="medicalRecords" options={{ title: 'Expedientes Médicos' }} />
+      <Drawer.Screen name="prescription" options={{ title: 'Prescripciones' }} />
+      <Drawer.Screen name="newPrescription" options={{ title: 'Nueva Prescripción',  drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="createMedicalRecord" options={{ title: 'Nuevo Expediente', drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="individualMedicalRecord" options={{ title: 'Expediente Individual', drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="notifications" options={{ title: 'Notificaciones' }}/>

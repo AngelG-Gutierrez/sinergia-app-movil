@@ -138,6 +138,9 @@ export function HomeAdminView() {
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [totalPrescriptions, setTotalPrescriptions] = useState(0);
+
   const [selectedAppointment, setSelectedAppointment] =
   useState<Appointment | null>(null);
 
@@ -161,7 +164,13 @@ export function HomeAdminView() {
         Authorization: `Bearer ${token}`,
       };
 
-      const [appointmentsResponse, recordsResponse] = await Promise.all([
+      // Consultamos los cuatro recursos del dashboard al mismo tiempo.
+      const [
+        appointmentsResponse,
+        recordsResponse,
+        patientsResponse,
+        prescriptionsResponse,
+      ] = await Promise.all([
         fetch(`${API_URL}/appointments`, {
           method: 'GET',
           headers,
@@ -170,8 +179,17 @@ export function HomeAdminView() {
           method: 'GET',
           headers,
         }),
+        fetch(`${API_URL}/users/patients`, {
+          method: 'GET',
+          headers,
+        }),
+        fetch(`${API_URL}/prescriptions/admin/count`, {
+          method: 'GET',
+          headers,
+        }),
       ]);
 
+      // Validamos las respuestas.
       if (!appointmentsResponse.ok) {
         throw new Error(
           `No se pudieron cargar las citas. Código: ${appointmentsResponse.status}`
@@ -184,11 +202,48 @@ export function HomeAdminView() {
         );
       }
 
-      const appointmentsData: Appointment[] = await appointmentsResponse.json();
-      const recordsData: MedicalRecord[] = await recordsResponse.json();
+      if (!patientsResponse.ok) {
+        throw new Error(
+          `No se pudieron cargar los pacientes. Código: ${patientsResponse.status}`
+        );
+      }
 
-      setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
-      setMedicalRecords(Array.isArray(recordsData) ? recordsData : []);
+      if (!prescriptionsResponse.ok) {
+        throw new Error(
+          `No se pudieron cargar las prescripciones. Código: ${prescriptionsResponse.status}`
+        );
+      }
+
+      // Convertimos las respuestas a JSON.
+      const appointmentsData: Appointment[] =
+        await appointmentsResponse.json();
+
+      const recordsData: MedicalRecord[] =
+        await recordsResponse.json();
+
+      const patientsData: Patient[] =
+        await patientsResponse.json();
+
+      const prescriptionsData: number =
+        await prescriptionsResponse.json();
+
+      // Actualizamos los estados del dashboard.
+      setAppointments(
+        Array.isArray(appointmentsData) ? appointmentsData : []
+      );
+
+      setMedicalRecords(
+        Array.isArray(recordsData) ? recordsData : []
+      );
+
+      setTotalPatients(
+        Array.isArray(patientsData) ? patientsData.length : 0
+      );
+
+      setTotalPrescriptions(
+        typeof prescriptionsData === 'number' ? prescriptionsData : 0
+      );
+
     } catch (error) {
       console.error('Error al cargar el dashboard:', error);
 
@@ -284,6 +339,10 @@ export function HomeAdminView() {
     });
   };
 
+   const handleCreatePrescription = () => {
+    router.push('/(admin)/newPrescription');
+  };
+
   const handleCreateMedicalRecord = () => {
     router.push('/(admin)/createMedicalRecord');
   };
@@ -345,7 +404,9 @@ export function HomeAdminView() {
               <Users color="#2B7A9E" size={22} />
               <Text style={styles.statHeaderLabel}>Pacientes</Text>
             </View>
-            <Text style={styles.statNumber}>00</Text>
+            <Text style={styles.statNumber}>
+              {isLoading ? '...' : String(totalPatients).padStart(2, '0')}
+            </Text>
             <Text style={styles.statSubtext}>Pacientes</Text>
           </View>
 
@@ -354,7 +415,9 @@ export function HomeAdminView() {
               <Dumbbell color="#2B7A9E" size={22} />
               <Text style={styles.statHeaderLabel}>Prescripciones</Text>
             </View>
-            <Text style={styles.statNumber}>00</Text>
+            <Text style={styles.statNumber}>
+              {isLoading ? '...' : String(totalPrescriptions).padStart(2, '0')}
+            </Text>
             <Text style={styles.statSubtext}>Planes activos</Text>
           </View>
 
@@ -380,7 +443,7 @@ export function HomeAdminView() {
             <TouchableOpacity
               style={styles.primaryActionBtn}
               activeOpacity={0.8}
-              disabled
+              onPress={handleCreatePrescription}
             >
               <Text style={styles.primaryActionText}>Nueva prescripción</Text>
             </TouchableOpacity>
