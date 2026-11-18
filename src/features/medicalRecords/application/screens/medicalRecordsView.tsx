@@ -254,10 +254,10 @@ export function MedicalRecordsView() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#CBE5FF' },
   scrollContent: { paddingHorizontal: 20 },
-  titleSection: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12, marginTop: -5 },
+  titleSection: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12, marginTop: 0 },
   titleIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#E5EFF7', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { fontSize: 22, marginBottom: 5, fontWeight: 'bold', color: '#000000' },
-  screenSubtitle: { fontSize: 14, color: '#374151', lineHeight: 20, marginTop: 2 },
+  screenSubtitle: { fontSize: 13, color: '#374151', lineHeight: 20, marginTop: 2 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 14, height: 48, marginBottom: 20 },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 15, color: '#111827' },
